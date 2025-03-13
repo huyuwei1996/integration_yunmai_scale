@@ -4,8 +4,8 @@ import signal
 
 from bleak import BleakScanner
 
-from custom_components.yunmai_scale.parse_data import process_data
 from custom_components.yunmai_scale.const import SERVICE_UUID_PREFIX
+from custom_components.yunmai_scale.parse_data import process_data
 
 sex = 1  # 1=Male, 2=Female
 height = 170

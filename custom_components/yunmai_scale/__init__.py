@@ -8,7 +8,7 @@ from typing import Any
 import voluptuous as vol
 from bleak import BleakError, BleakScanner
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_MAC, CONF_NAME, Platform
+from homeassistant.const import CONF_ADDRESS, CONF_NAME, Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -57,7 +57,7 @@ class YunmaiDataCoordinator(DataUpdateCoordinator):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the data coordinator."""
         self.entry = entry
-        self.mac_address = entry.data.get(CONF_MAC)
+        self.mac_address = entry.data.get(CONF_ADDRESS)
         self.user_info = {
             CONF_GENDER: entry.data.get(CONF_GENDER, 1),  # 1 for male, 0 for female
             CONF_HEIGHT: entry.data.get(CONF_HEIGHT, 170),

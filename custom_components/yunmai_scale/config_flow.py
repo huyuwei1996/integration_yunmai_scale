@@ -6,12 +6,10 @@ import logging
 import re
 from typing import Any
 
-import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
-from bleak import BleakScanner
+from bluetooth_data_tools import short_address
 from homeassistant import config_entries
-from homeassistant.components.bluetooth import async_discovered_service_info
-from homeassistant.const import CONF_MAC, CONF_NAME
+from homeassistant.const import CONF_ADDRESS, CONF_NAME
 from homeassistant.data_entry_flow import FlowResult
 
 from .const import (
@@ -28,6 +26,11 @@ _LOGGER = logging.getLogger(__name__)
 MAC_REGEX = re.compile(r"^([0-9A-F]{2}:){5}([0-9A-F]{2})$")
 
 
+def format_unique_id(address: str) -> str:
+    """Format the unique ID."""
+    return address.replace(":", "").lower()
+
+
 class YunmaiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Yunmai Scale."""
 
@@ -42,10 +45,10 @@ class YunmaiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle the bluetooth discovery step."""
         # Extract necessary information from discovery
         address = discovery_info.address
-        name = discovery_info.name or "Yunmai Scale"
+        name = f"Yunmai Scale {short_address(address)}"
 
         # Check if this device is already configured
-        await self.async_set_unique_id(address)
+        await self.async_set_unique_id(format_unique_id(address))
         self._abort_if_unique_id_configured()
 
         # Check if it's a Yunmai scale
@@ -62,7 +65,7 @@ class YunmaiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.discovered_devices[address] = name
         self.selected_device = {
             CONF_NAME: name,
-            CONF_MAC: address,
+            CONF_ADDRESS: address,
         }
 
         return await self.async_step_user()
@@ -74,36 +77,34 @@ class YunmaiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         if user_input is not None:
-            if CONF_MAC in user_input:
-                mac = user_input[CONF_MAC].upper()
+            if CONF_ADDRESS in user_input:
+                mac = user_input[CONF_ADDRESS].upper()
 
                 # Validate MAC address format
                 if MAC_REGEX.match(mac):
-                    await self.async_set_unique_id(mac)
+                    await self.async_set_unique_id(format_unique_id(mac))
                     self._abort_if_unique_id_configured()
 
                     self.selected_device = {
-                        CONF_NAME: user_input.get(CONF_NAME, "Yunmai Scale"),
-                        CONF_MAC: mac,
+                        CONF_NAME: user_input.get(
+                            CONF_NAME, f"Yunmai Scale {short_address(mac)}"
+                        ),
+                        CONF_ADDRESS: mac,
                     }
                     return await self.async_step_user_settings()
                 else:
-                    errors[CONF_MAC] = "invalid_mac"
+                    errors[CONF_ADDRESS] = "invalid_mac"
             elif user_input.get("use_discovered") and self.discovered_devices:
                 # User selected a discovered device
                 selected_mac = user_input["discovered_device"]
-                await self.async_set_unique_id(selected_mac)
+                await self.async_set_unique_id(format_unique_id(selected_mac))
                 self._abort_if_unique_id_configured()
 
                 self.selected_device = {
-                    CONF_NAME: self.discovered_devices[selected_mac],
-                    CONF_MAC: selected_mac,
+                    CONF_NAME: f"Yunmai Scale {short_address(selected_mac)}",
+                    CONF_ADDRESS: selected_mac,
                 }
                 return await self.async_step_user_settings()
-
-        # If no discovered devices yet, try to discover
-        if not self.discovered_devices:
-            await self._discover_devices()
 
         # If we have discovered devices, show them as options
         if self.discovered_devices:
@@ -122,8 +123,11 @@ class YunmaiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             # Otherwise, show manual entry form
             schema = vol.Schema(
                 {
-                    vol.Required(CONF_NAME): str,
-                    vol.Required(CONF_MAC): str,
+                    vol.Required(CONF_NAME, default="Yunmai Scale"): str,
+                    vol.Required(
+                        CONF_ADDRESS,
+                        description={"suggested_value": "AA:BB:CC:DD:EE:FF"},
+                    ): str,
                 }
             )
 
@@ -148,8 +152,10 @@ class YunmaiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_AGE: user_input.get(CONF_AGE, 30),
             }
 
+            entry_title = f"Yunmai Scale {short_address(data[CONF_ADDRESS])}"
+
             return self.async_create_entry(
-                title=data[CONF_NAME],
+                title=entry_title,
                 data=data,
             )
 
@@ -167,24 +173,18 @@ class YunmaiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             }
         )
 
+        if not self.selected_device:
+            return self.async_abort(reason="no_device_selected")
+
+        display_name = (
+            f"Yunmai Scale {short_address(self.selected_device[CONF_ADDRESS])}"
+        )
         return self.async_show_form(
             step_id="user_settings",
             data_schema=schema,
             errors=errors,
             description_placeholders={
-                "name": self.selected_device[CONF_NAME],
-                "mac": self.selected_device[CONF_MAC],
+                "name": display_name,
+                "mac": self.selected_device[CONF_ADDRESS],
             },
         )
-
-    async def _discover_devices(self) -> None:
-        """Discover Yunmai BLE devices."""
-        self.discovered_devices = {}
-
-        # Scan for devices
-        devices = await BleakScanner.discover()
-        for device in devices:
-            if device.name and (
-                "yunmai" in device.name.lower() or "scale" in device.name.lower()
-            ):
-                self.discovered_devices[device.address] = device.name

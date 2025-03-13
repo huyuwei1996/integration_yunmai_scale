@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Callable, Optional
+from typing import Callable
 
+from bluetooth_data_tools import short_address
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -162,21 +163,32 @@ class YunmaiSensor(CoordinatorEntity, SensorEntity):
     """Yunmai Scale sensor."""
 
     entity_description: YunmaiSensorEntityDescription
+    _previous_value: StateType = None
+    _attr_has_entity_name = True
 
     def __init__(self, coordinator, description: YunmaiSensorEntityDescription) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self.entity_description = description
         self._attr_device_info = coordinator.device_info
-        self._attr_unique_id = f"{coordinator.mac_address}_{description.key}"
+        self._attr_unique_id = (
+            f"{short_address(coordinator.mac_address)}_{description.key}"
+        )
+        _LOGGER.info("Created sensor %s %s", description.key, self._attr_unique_id)
 
     @property
     def native_value(self) -> StateType:
         """Return the state of the sensor."""
         if not self.coordinator.data:
-            return None
+            return self._previous_value
 
-        return self.entity_description.value_fn(self.coordinator.data)
+        value = self.entity_description.value_fn(self.coordinator.data)
+        if value is not None:
+            self._previous_value = value
+        elif self._previous_value is not None:
+            return self._previous_value
+
+        return value
 
     @property
     def available(self) -> bool:
