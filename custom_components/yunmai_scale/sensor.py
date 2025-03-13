@@ -179,7 +179,7 @@ class YunmaiSensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> StateType:
         """Return the state of the sensor."""
-        if not self.coordinator.data:
+        if not self.coordinator.data and self.entity_description.key != SENSOR_STATUS:
             return self._previous_value
 
         value = self.entity_description.value_fn(self.coordinator.data)
