@@ -14,9 +14,8 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_CONNECTIONS, PERCENTAGE, UnitOfMass
+from homeassistant.const import PERCENTAGE, UnitOfMass
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
@@ -169,12 +168,12 @@ class YunmaiSensor(CoordinatorEntity, SensorEntity):
             f"{short_address(coordinator.mac_address)}_{description.key}"
         )
         _LOGGER.info("Created sensor %s %s", description.key, self._attr_unique_id)
-        if ":" not in coordinator.mac_address:
-            # MacOS Bluetooth addresses are not mac addresses
-            return
-        self._attr_device_info[ATTR_CONNECTIONS].add(
-            (dr.CONNECTION_NETWORK_MAC, coordinator.mac_address)
-        )
+        # if ":" not in coordinator.mac_address:
+        #     # MacOS Bluetooth addresses are not mac addresses
+        #     return
+        # self._attr_device_info[ATTR_CONNECTIONS].add(
+        #     (dr.CONNECTION_NETWORK_MAC, coordinator.mac_address)
+        # )
 
     @property
     def native_value(self) -> StateType:
