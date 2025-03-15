@@ -44,6 +44,23 @@ A custom component for Home Assistant that integrates Yunmai body scales using B
 - A compatible Yunmai scale
 - Bluetooth adapter that supports BLE
 
+## Development Setup
+
+### Install Development Dependencies
+
+```bash
+
+pip install -r requirements-dev.txt
+```
+
+### Setup Pre-commit Hooks
+
+```bash
+pre-commit install
+```
+
+This will automatically run ruff and lint checks on your code before each commit.
+
 ## Thanks
 
 Thanks to the following open source projects and resources:

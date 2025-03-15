@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from bluetooth_data_tools import short_address
 from homeassistant.components.sensor import (
@@ -14,17 +14,13 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    PERCENTAGE,
-    UnitOfMass,
-)
+from homeassistant.const import ATTR_CONNECTIONS, PERCENTAGE, UnitOfMass
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
-from homeassistant.helpers.update_coordinator import (
-    CoordinatorEntity,
-)
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     DOMAIN,
@@ -152,9 +148,7 @@ async def async_setup_entry(
     """Set up Yunmai sensor based on a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
 
-    entities = []
-    for description in SENSORS:
-        entities.append(YunmaiSensor(coordinator, description))
+    entities = [YunmaiSensor(coordinator, description) for description in SENSORS]
 
     async_add_entities(entities)
 
@@ -175,6 +169,12 @@ class YunmaiSensor(CoordinatorEntity, SensorEntity):
             f"{short_address(coordinator.mac_address)}_{description.key}"
         )
         _LOGGER.info("Created sensor %s %s", description.key, self._attr_unique_id)
+        if ":" not in coordinator.mac_address:
+            # MacOS Bluetooth addresses are not mac addresses
+            return
+        self._attr_device_info[ATTR_CONNECTIONS].add(
+            (dr.CONNECTION_NETWORK_MAC, coordinator.mac_address)
+        )
 
     @property
     def native_value(self) -> StateType:
