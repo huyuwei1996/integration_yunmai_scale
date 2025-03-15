@@ -9,7 +9,7 @@ CONF_IS_ACTIVE = "is_active"
 CONF_AGE = "age"
 
 # Scan interval in seconds
-SCAN_INTERVAL = 30
+SCAN_INTERVAL = 10
 
 # Yunmai BLE constants
 SERVICE_UUID_PREFIX = "00001320"
