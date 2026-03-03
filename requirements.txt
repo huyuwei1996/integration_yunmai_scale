@@ -1,2 +1,1 @@
 homeassistant>=2024.12.5
-bleak>=0.22.3

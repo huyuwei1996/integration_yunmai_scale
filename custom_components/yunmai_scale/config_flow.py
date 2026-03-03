@@ -9,6 +9,7 @@ from typing import Any
 import voluptuous as vol
 from bluetooth_data_tools import short_address
 from homeassistant import config_entries
+from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
 from homeassistant.const import CONF_ADDRESS, CONF_NAME
 from homeassistant.data_entry_flow import FlowResult
 
@@ -18,7 +19,7 @@ from .const import (
     CONF_HEIGHT,
     CONF_IS_ACTIVE,
     DOMAIN,
-    SERVICE_UUID_PREFIX,
+    SERVICE_UUID,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -41,7 +42,9 @@ class YunmaiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.discovered_devices = {}
         self.selected_device = None
 
-    async def async_step_bluetooth(self, discovery_info) -> FlowResult:
+    async def async_step_bluetooth(
+        self, discovery_info: BluetoothServiceInfoBleak
+    ) -> FlowResult:
         """Handle the bluetooth discovery step."""
         # Extract necessary information from discovery
         address = discovery_info.address
@@ -52,11 +55,10 @@ class YunmaiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._abort_if_unique_id_configured()
 
         # Check if it's a Yunmai scale
-        is_yunmai = False
-        for service_uuid in discovery_info.advertisement.service_uuids:
-            if str(service_uuid).startswith(SERVICE_UUID_PREFIX):
-                is_yunmai = True
-                break
+        is_yunmai = any(
+            str(service_uuid).startswith(SERVICE_UUID[:8])
+            for service_uuid in discovery_info.advertisement.service_uuids
+        )
 
         if not is_yunmai:
             return self.async_abort(reason="not_yunmai_device")

@@ -8,11 +8,8 @@ CONF_HEIGHT = "height"
 CONF_IS_ACTIVE = "is_active"
 CONF_AGE = "age"
 
-# Scan interval in seconds
-SCAN_INTERVAL = 10
-
 # Yunmai BLE constants
-SERVICE_UUID_PREFIX = "00001320"
+SERVICE_UUID = "00001320-0000-1000-8000-00805f9b34fb"
 
 # Sensor types
 SENSOR_WEIGHT = "weight"
